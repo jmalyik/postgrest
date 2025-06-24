@@ -1,0 +1,38 @@
+{
+  "realm": "barrehackathlon",
+  "enabled": true,
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "adminpass" }],
+      "realmRoles": ["admin"]
+    },
+    {
+      "username": "alice",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "alicepass" }],
+      "realmRoles": ["user"]
+    }
+  ],
+  "roles": {
+    "realm": [{"name": "admin"}, {"name": "user"}]
+  },
+  "clients": [
+    {
+      "clientId": "postgrest",
+      "publicClient": false,
+      "secret": "mysecretkey1234567890123456789012",
+      "redirectUris": [],
+      "protocol": "openid-connect",
+      "defaultRoles": [],
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "attributes": {
+        "access.token.signed.response.alg": "HS256",
+        "id.token.signed.response.alg": "HS256",
+        "userinfo.token.signed.response.alg": "HS256"
+      }
+    }
+  ]
+}

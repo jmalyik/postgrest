@@ -1,0 +1,1 @@
+curl -X POST http://localhost:8080/realms/barrehackathlon/protocol/openid-connect/token -d "grant_type=password&client_id=postgrest&client_secret=this_is_a_very_long_and_secure_jwt_secret_123!" -d "username=alice&password=alicepass"
