@@ -1,0 +1,2 @@
+# postgrest expects the public key in multiline format, but on the keycloak UI, on the realm settings -> keys -> RSA256 you got the one liner version that needs to be converted
+echo "$1" | fold -w 64 | sed '1i -----BEGIN PUBLIC KEY-----' | sed '$a -----END PUBLIC KEY-----'

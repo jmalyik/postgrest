@@ -1,0 +1,1 @@
+python3 pem2jwk.py ./public.pem > ./keycloak-public.json

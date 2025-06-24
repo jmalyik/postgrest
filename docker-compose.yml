@@ -4,24 +4,51 @@ services:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:26.0.0
     environment:
-      KEYCLOAK_ADMIN: kcadmin
-      KEYCLOAK_ADMIN_PASSWORD: Miranda5
+      KC_BOOTSTRAP_ADMIN_USERNAME: kcadmin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: Miranda5
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
       KEYCLOAK_IMPORT: /realm-import/realm.json
     volumes:
       - ./keycloak/realm-import/realm.json:/opt/keycloak/data/import/realm.json:ro
     command: ["start-dev", "--import-realm", "--http-port=8080"]
     ports:
       - "8080:8080"
+# I needed to add a healthcheck to ensure the Keycloak service is ready before other services depend on it.
+# keycloak does not have curl or wget installed, so we use a simple healthcheck command.
     healthcheck:
-      test: ["CMD", "sh", "-c", "exec 3<>/dev/tcp/localhost/8080"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/realms/barrehackathlon/.well-known/openid-configuration"]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 10
+    networks:
+      - default
+  keycloak-healthcheck:
+    container_name: keycloak-healthcheck
+    image: curlimages/curl:latest
+    command: >
+      sh -c '
+        until curl -sf http://keycloak:8080/realms/barrehackathlon/.well-known/openid-configuration; do
+          echo "Waiting for Keycloak realm...";
+          sleep 2;
+        done;
+        echo "Keycloak realm is ready!";
+        # Keep the container alive so healthcheck can run
+        tail -f /dev/null
+      '
+    depends_on:
+      - keycloak
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://keycloak:8080/realms/barrehackathlon/.well-known/openid-configuration"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
   keycloak-init:
     container_name: keycloak-init
     image: quay.io/keycloak/keycloak:26.0.0
     depends_on:
-      keycloak:
+      keycloak-healthcheck:
         condition: service_healthy
     entrypoint: ["/bin/sh", "-c"]
     command: "/opt/keycloak/scripts/keycloak-init.sh"
@@ -57,21 +84,22 @@ services:
       PGRST_DB_URI: postgres://admin:secret@db:5432/pocdb
       PGRST_DB_ANON_ROLE: anon
       PGRST_DB_SCHEMA: public
-      #PGRST_JWT_SECRET: http://keycloak:8080/realms/barrehackathlon/protocol/openid-connect/certs
-      PGRST_JWT_SECRET: |
-        -----BEGIN PUBLIC KEY-----
-        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuiLQOJHcdAkjBuLT1+w7ioRZallaoP9WD3atMXVLreO2FTKKm0gkboHxK5sAHO9j8xEWpBj2lsjrI2TtF+CBCRqtZEeLtyumUnw5+OH9YcEyW/P0RGoUf6Qv6EphJoFLPWCaGOhbxeroHa9AEhD/oXxadTS6zFZgLbTW5SjBKeuLLxLEke7Kid+ipjZCddoiEXXTDHaGV9Q7mtI1MnAzF9ia6FmqTnmXg7hgjA0TJnh4hDWZaUTkUJVu76WOeeuMJCEHUjbWEbTNiBDxL787r+ZuWG6WnQ3IrIIzIY+6mBNqSgu3WSgRMm4qcB6dftRpQk1GvSIE+9pMgvkt7yty3wIDAQAB
-        -----END PUBLIC KEY-----
+      PGRST_JWT_SECRET: http://keycloak:8080/realms/barrehackathlon/protocol/openid-connect/certs
       PGRST_JWT_CACHE_MAX_LIFETIME: 900
       PGRST_SERVER_HOST: 0.0.0.0
       PGRST_LOG_LEVEL: debug
     ports:
       - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     depends_on:
       db:
         condition: service_healthy
-      keycloak:
-        condition: service_started
+      keycloak-healthcheck:
+        condition: service_healthy
 
   redpanda:
     container_name: redpanda
@@ -119,8 +147,10 @@ services:
     build: ./test-runner
     entrypoint: ["/usr/src/app/entrypoint.sh"]
     depends_on:
-      - postgrest
-      - keycloak
+      postgrest:
+        condition: service_healthy
+      keycloak-healthcheck:
+        condition: service_healthy
     volumes:
       - ./test-runner:/usr/src/app
 
