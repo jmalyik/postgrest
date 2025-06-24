@@ -5,14 +5,20 @@
     {
       "username": "admin",
       "enabled": true,
+      "email": "admin@example.com",
+      "emailVerified": true,
       "credentials": [{ "type": "password", "value": "adminpass" }],
-      "realmRoles": ["admin"]
+      "realmRoles": ["admin"],
+      "requiredActions": []
     },
     {
       "username": "alice",
       "enabled": true,
+      "email": "alice@example.com",
+      "emailVerified": true,
       "credentials": [{ "type": "password", "value": "alicepass" }],
-      "realmRoles": ["user"]
+      "realmRoles": ["user"],
+      "requiredActions": []
     }
   ],
   "roles": {
@@ -21,18 +27,12 @@
   "clients": [
     {
       "clientId": "postgrest",
-      "publicClient": false,
-      "secret": "mysecretkey1234567890123456789012",
+      "publicClient": true,
       "redirectUris": [],
       "protocol": "openid-connect",
       "defaultRoles": [],
       "directAccessGrantsEnabled": true,
-      "serviceAccountsEnabled": false,
-      "attributes": {
-        "access.token.signed.response.alg": "HS256",
-        "id.token.signed.response.alg": "HS256",
-        "userinfo.token.signed.response.alg": "HS256"
-      }
+      "serviceAccountsEnabled": false
     }
   ]
 }

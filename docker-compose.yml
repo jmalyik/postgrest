@@ -2,16 +2,41 @@ version: "3.7"
 services:
   keycloak:
     container_name: keycloak
-    image: quay.io/keycloak/keycloak:21.1.1
+    image: quay.io/keycloak/keycloak:26.0.0
     environment:
       KEYCLOAK_ADMIN: kcadmin
-      KEYCLOAK_ADMIN_PASSWORD: Karanda5
+      KEYCLOAK_ADMIN_PASSWORD: Miranda5
       KEYCLOAK_IMPORT: /realm-import/realm.json
     volumes:
       - ./keycloak/realm-import/realm.json:/opt/keycloak/data/import/realm.json:ro
-    command: ["start-dev", " --import-realm", "--http-port=8080"]
+    command: ["start-dev", "--import-realm", "--http-port=8080"]
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "exec 3<>/dev/tcp/localhost/8080"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  keycloak-init:
+    container_name: keycloak-init
+    image: quay.io/keycloak/keycloak:26.0.0
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      echo "Logging in to Keycloak as $KEYCLOAK_ADMIN with password $KEYCLOAK_ADMIN_PASSWORD"
+      /opt/keycloak/bin/kcadm.sh config credentials --server http://keycloak:8080 --realm master --user $KEYCLOAK_ADMIN --password $KEYCLOAK_ADMIN_PASSWORD
+      # Disable required actions at realm level
+      for action in UPDATE_PASSWORD UPDATE_PROFILE CONFIGURE_TOTP VERIFY_EMAIL TERMS_AND_CONDITIONS webauthn-register webauthn-register-passwordless; do
+        /opt/keycloak/bin/kcadm.sh update authentication/required-actions/$action -r barrehackathlon -s "enabled=false"
+      done
+    environment:
+      KEYCLOAK_ADMIN: kcadmin
+      KEYCLOAK_ADMIN_PASSWORD: Miranda5
+    networks:
+      - default
+
 
   db:
     container_name: db
@@ -31,12 +56,12 @@ services:
 
   postgrest:
     container_name: postgrest
-    image: postgrest/postgrest
+    image: postgrest/postgrest:latest
     environment:
       PGRST_DB_URI: postgres://admin:secret@db:5432/pocdb
       PGRST_DB_ANON_ROLE: anon
       PGRST_DB_SCHEMA: public
-      PGRST_JWT_SECRET: 'secret:mysecretkey1234567890123456789012'
+      PGRST_JWT_SECRET: http://keycloak:8080/realms/barrehackathlon/protocol/openid-connect/certs
       PGRST_JWT_CACHE_MAX_LIFETIME: 900
       PGRST_SERVER_HOST: 0.0.0.0
       PGRST_LOG_LEVEL: debug

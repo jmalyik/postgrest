@@ -14,7 +14,11 @@ done
 
 # Token kérés Alice-nak
 echo "🔐 Getting token for alice..."
-TOKEN=$(curl -X POST http://keycloak:8080/realms/barrehackathlon/protocol/openid-connect/token -d "grant_type=password" -d "client_id=postgrest" -d "client_secret=mysecretkey1234567890123456789012" -d "username=alice&password=alicepass" | jq -r .access_token)
+TOKEN=$(curl -v http://keycloak:8080/realms/barrehackathlon/protocol/openid-connect/token \
+  -d "grant_type=password" \
+  -d "client_id=postgrest" \
+  -d "username=alice" \
+  -d "password=alicepass" | jq -r .access_token)
 
   
 
@@ -23,18 +27,18 @@ echo "✅ Got token: ${TOKEN}"
 # POST kérés az API-ra
 echo "📤 Creating item via PostgREST..."
 
-echo "curl -s -X POST http://postgrest:3000/items \
+echo "curl -v -X POST http://postgrest:3000/items \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name": "test item from alice"}'"
 
-curl -s -X POST http://postgrest:3000/items \
+curl -v -X POST http://postgrest:3000/items \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name": "test item from alice"}'
 
 echo "✅ Test completed"
 
-curl -X GET http://postgrest:3000/items \
+curl -v -X GET http://postgrest:3000/items \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
