@@ -30,12 +30,12 @@ echo "📤 Creating item via PostgREST..."
 echo "curl -v -X POST http://postgrest:3000/items \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name": "test item from alice"}'"
+  -d '{"content": "test item from alice", "owner_username": "alice"}'"
 
 curl -v -X POST http://postgrest:3000/items \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name": "test item from alice"}'
+  -d '{"content": "test item from alice", "owner_username": "alice"}'
 
 echo "✅ Test completed"
 

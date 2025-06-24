@@ -24,13 +24,9 @@ services:
       keycloak:
         condition: service_healthy
     entrypoint: ["/bin/sh", "-c"]
-    command: |
-      echo "Logging in to Keycloak as $KEYCLOAK_ADMIN with password $KEYCLOAK_ADMIN_PASSWORD"
-      /opt/keycloak/bin/kcadm.sh config credentials --server http://keycloak:8080 --realm master --user $KEYCLOAK_ADMIN --password $KEYCLOAK_ADMIN_PASSWORD
-      # Disable required actions at realm level
-      for action in UPDATE_PASSWORD UPDATE_PROFILE CONFIGURE_TOTP VERIFY_EMAIL TERMS_AND_CONDITIONS webauthn-register webauthn-register-passwordless; do
-        /opt/keycloak/bin/kcadm.sh update authentication/required-actions/$action -r barrehackathlon -s "enabled=false"
-      done
+    command: "/opt/keycloak/scripts/keycloak-init.sh"
+    volumes:
+      - ./keycloak/scripts/keycloak-init.sh:/opt/keycloak/scripts/keycloak-init.sh:ro
     environment:
       KEYCLOAK_ADMIN: kcadmin
       KEYCLOAK_ADMIN_PASSWORD: Miranda5
@@ -61,7 +57,11 @@ services:
       PGRST_DB_URI: postgres://admin:secret@db:5432/pocdb
       PGRST_DB_ANON_ROLE: anon
       PGRST_DB_SCHEMA: public
-      PGRST_JWT_SECRET: http://keycloak:8080/realms/barrehackathlon/protocol/openid-connect/certs
+      #PGRST_JWT_SECRET: http://keycloak:8080/realms/barrehackathlon/protocol/openid-connect/certs
+      PGRST_JWT_SECRET: |
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuiLQOJHcdAkjBuLT1+w7ioRZallaoP9WD3atMXVLreO2FTKKm0gkboHxK5sAHO9j8xEWpBj2lsjrI2TtF+CBCRqtZEeLtyumUnw5+OH9YcEyW/P0RGoUf6Qv6EphJoFLPWCaGOhbxeroHa9AEhD/oXxadTS6zFZgLbTW5SjBKeuLLxLEke7Kid+ipjZCddoiEXXTDHaGV9Q7mtI1MnAzF9ia6FmqTnmXg7hgjA0TJnh4hDWZaUTkUJVu76WOeeuMJCEHUjbWEbTNiBDxL787r+ZuWG6WnQ3IrIIzIY+6mBNqSgu3WSgRMm4qcB6dftRpQk1GvSIE+9pMgvkt7yty3wIDAQAB
+        -----END PUBLIC KEY-----
       PGRST_JWT_CACHE_MAX_LIFETIME: 900
       PGRST_SERVER_HOST: 0.0.0.0
       PGRST_LOG_LEVEL: debug
