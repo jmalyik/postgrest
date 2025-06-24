@@ -21,7 +21,7 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8080/realms/barrehackathlon/.well-known/openid-configuration"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 30
     networks:
       - default
   keycloak-healthcheck:
@@ -43,7 +43,7 @@ services:
       test: ["CMD", "curl", "-f", "http://keycloak:8080/realms/barrehackathlon/.well-known/openid-configuration"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 30
   keycloak-init:
     container_name: keycloak-init
     image: quay.io/keycloak/keycloak:26.0.0
@@ -75,7 +75,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U admin"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 30
 
   postgrest:
     container_name: postgrest
@@ -85,16 +85,13 @@ services:
       PGRST_DB_ANON_ROLE: anon
       PGRST_DB_SCHEMA: public
       PGRST_JWT_SECRET: http://keycloak:8080/realms/barrehackathlon/protocol/openid-connect/certs
+      PGRST_JWT_AUD: postgrest
+      PGRST_JWT_ROLE_CLAIM_KEY: ".realm_access.roles"
       PGRST_JWT_CACHE_MAX_LIFETIME: 900
       PGRST_SERVER_HOST: 0.0.0.0
       PGRST_LOG_LEVEL: debug
     ports:
       - "3000:3000"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
     depends_on:
       db:
         condition: service_healthy
@@ -112,7 +109,7 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:9644/v1/status/ready"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 30
 
   debezium:
     container_name: debezium
@@ -147,8 +144,6 @@ services:
     build: ./test-runner
     entrypoint: ["/usr/src/app/entrypoint.sh"]
     depends_on:
-      postgrest:
-        condition: service_healthy
       keycloak-healthcheck:
         condition: service_healthy
     volumes:
